@@ -197,6 +197,36 @@ resource "aws_iam_role" "codebuild_promiedos_role" {
   assume_role_policy = data.aws_iam_policy_document.assume_codebuild_role.json
 }
 
+data "aws_iam_policy_document" "codebuild_promiedos_policy_document" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "ecr:GetAuthorizationToken",
+      "ecr:InitiateLayerUpload",
+      "ecr:UploadLayerPart",
+      "ecr:CompleteLayerUpload",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:PutImage",
+      "ecs:RunTask",
+      "iam:PassRole",
+      "s3:GetObject"
+    ]
+
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "codebuild_promiedos_role_policy" {
+  name   = "codebuild_promiedos_role_policy"
+  role   = aws_iam_role.codebuild_promiedos_role.id
+  policy = data.aws_iam_policy_document.codebuild_promiedos_policy_document.json
+}
+
+
 resource "aws_codebuild_project" "build_promiedos_lambda" {
   name          = "codebuild_promiedos_lambda"
   build_timeout = "15"
