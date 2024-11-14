@@ -1,0 +1,26 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+  pre_build:
+    commands:
+      - echo Starting Deploy job
+      - aws --version
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - ACCOUNT=${account}
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building image...
+      - docker build --platform=linux/amd64 -t promiedos .
+      - echo Tagging image...
+      - docker tag promiedos $ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/promiedos:latest
+      - echo Pushing image...
+      - docker push $ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/promiedos:latest
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Updating lambda function...
+      - aws lambda update-function-code --function-name promiedos --image-uri $ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/promiedos:latest --publish
