@@ -93,14 +93,70 @@ def promiedos() -> dict:
 def lambda_handler(event, context):
     promiedos_response = promiedos()
 
-    send_telegram_message(promiedos_response)
+    formatted_response = format_matches(promiedos_response)
+    send_telegram_message(formatted_response)
 
     return promiedos_response
 
-def send_telegram_message(response):
+def send_telegram_message(message):
     try:
-        bot_request = 'https://api.telegram.org/bot' + os.environ['TELEGRAM_TOKEN'] + '/sendMessage?chat_id=' + os.environ['TELEGRAM_CHAT_ID'] + '&text=' + json.dumps(response)
-        print(bot_request)
+        bot_request = 'https://api.telegram.org/bot' + os.environ['TELEGRAM_TOKEN'] + '/sendMessage?chat_id=' + os.environ['TELEGRAM_CHAT_ID'] + '&parse_mode=html&text=' + message
+
         return requests.get(bot_request) 
     except Exception as e:
         print(f"Error: {e}")
+
+def format_matches(json_data):
+    """
+    Format football matches JSON data in a readable way.
+    
+    Args:
+        json_data (str or dict): JSON string or dictionary containing matches data
+        
+    Returns:
+        str: Formatted string with matches information
+    """
+    # If input is a string, parse it to dictionary
+    if isinstance(json_data, str):
+        data = json.loads(json_data)
+    else:
+        data = json_data
+        
+    formatted_output = []
+    
+    for tournament, matches in data.items():
+        # Add tournament header
+        formatted_output.append(f"<b>\U0001F3C6 {tournament}</b>")
+        
+        # Process each match
+        for match in matches:
+            # Parse and format the time
+            try:
+                match_time = datetime.fromisoformat(match['time'])
+                israeli_time = match_time.astimezone(ZoneInfo('Asia/Jerusalem'))
+                formatted_time = israeli_time.strftime("%H:%M")
+                formatted_date = israeli_time.strftime("%d/%m")
+            except Exception:
+                formatted_date = "LIVE"
+                formatted_date = match["time"]
+
+            
+            # Format match details
+            local_team = match['local']['team']
+            visitor_team = match['visitor']['team']
+            local_result = match['local']['result'] or '-'
+            visitor_result = match['visitor']['result'] or '-'
+            
+            # Create match line with aligned teams and scores
+            match_line = (
+                f"\U000023F0 {formatted_date} {formatted_time} | \U000026BD "
+                f"{local_team} [{local_result}] vs "
+                f"[{visitor_result}] {visitor_team}"
+            )
+            
+            formatted_output.append(match_line)
+        
+        # Add empty line between tournaments
+        formatted_output.append('%0A')
+    
+    return '%0A%0A'.join(formatted_output)
