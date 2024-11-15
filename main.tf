@@ -213,7 +213,8 @@ data "aws_iam_policy_document" "codebuild_promiedos_policy_document" {
       "ecr:PutImage",
       "ecs:RunTask",
       "iam:PassRole",
-      "s3:GetObject"
+      "s3:GetObject",
+      "lambda:UpdateFunctionCode"
     ]
 
     resources = ["*"]
