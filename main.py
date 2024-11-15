@@ -1,4 +1,6 @@
 import requests
+import os
+import json
 from bs4 import BeautifulSoup
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -89,4 +91,16 @@ def promiedos() -> dict:
     return games_results
 
 def lambda_handler(event, context):
-    return promiedos()
+    promiedos_response = promiedos()
+
+    send_telegram_message(promiedos_response)
+
+    return promiedos_response
+
+def send_telegram_message(response):
+    try:
+        bot_request = 'https://api.telegram.org/bot' + os.environ['TELEGRAM_TOKEN'] + '/sendMessage?chat_id=' + os.environ['TELEGRAM_CHAT_ID'] + '&text=' + json.dumps(response)
+        print(bot_request)
+        return requests.get(bot_request) 
+    except Exception as e:
+        print(f"Error: {e}")

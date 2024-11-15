@@ -1,6 +1,12 @@
 # FROM public.ecr.aws/lambda/python:3.8.2021.12.18.01-x86_64
 FROM public.ecr.aws/lambda/python:3.9
 
+ARG TELEGRAM_TOKEN
+ARG TELEGRAM_CHAT_ID
+
+ENV TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+ENV TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+
 # Copy requirements.txt
 COPY requirements.txt ${LAMBDA_TASK_ROOT}
 

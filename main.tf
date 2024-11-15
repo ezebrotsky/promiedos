@@ -56,6 +56,29 @@ resource "aws_lambda_function" "promiedos_lambda" {
   image_uri     = "${aws_ecr_repository.promiedos.repository_url}:latest"
 }
 
+### Trigger Lambda every 2 hours
+resource "aws_cloudwatch_event_rule" "every_2_hours" {
+  name        = "promiedos_lambda_every_2_hours"
+  description = "Trigger promiedos Lambda every 2 hours"
+
+  schedule_expression = "rate(2 hours)"
+}
+
+resource "aws_cloudwatch_event_target" "lambda_target" {
+  rule      = aws_cloudwatch_event_rule.every_2_hours.name
+  target_id = "SendToLambda"
+  arn       = aws_lambda_function.promiedos_lambda.arn
+}
+
+resource "aws_lambda_permission" "allow_eventbridge" {
+  statement_id  = "AllowExecutionFromEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.promiedos_lambda.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.every_2_hours.arn
+}
+
+
 ### Pipeline
 resource "aws_codepipeline" "codepipeline" {
   name     = "promiedos"
@@ -250,7 +273,9 @@ resource "aws_codebuild_project" "build_promiedos_lambda" {
     buildspec = templatefile(
       "./buildspecs/promiedos_lambda.yml",
       {
-        account = var.aws_account_id
+        account          = var.aws_account_id
+        telegram_token   = var.telegram_token
+        telegram_chat_id = var.telegram_chat_id
       }
     )
   }

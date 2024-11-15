@@ -10,12 +10,14 @@ phases:
       - aws --version
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - ACCOUNT=${account}
+      - TELEGRAM_TOKEN=${telegram_token}
+      - TELEGRAM_CHAT_ID=${telegram_chat_id}
       - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ACCOUNT.dkr.ecr.us-east-1.amazonaws.com
   build:
     commands:
       - echo Build started on `date`
       - echo Building image...
-      - docker build --platform=linux/amd64 -t promiedos .
+      - docker build --build-arg TELEGRAM_TOKEN=$TELEGRAM_TOKEN --build-arg TELEGRAM_CHAT_ID=$TELEGRAM_CHAT_ID --platform=linux/amd64 -t promiedos .
       - echo Tagging image...
       - docker tag promiedos $ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/promiedos:latest
       - echo Pushing image...
