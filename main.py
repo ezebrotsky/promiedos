@@ -36,14 +36,11 @@ def promiedos() -> dict:
         # title
         league_title_html = league.find('tr', {"class": 'tituloin'})
         league_title = league_title_html.find('a').text.strip()
-        print(league_title)
 
         # get games per league
         games = league.find_all('tr', {"name":["nvp", "vp"]})
         
         for game in games:
-            # print(game)
-
             ## times
             time = ''
             # if not started
@@ -88,7 +85,7 @@ def promiedos() -> dict:
                     'time': formatted_time
                 })
                 
-                print(f"- Time: {time} [Argentina] | {team_local} ({result_local}) Vs. {team_visitor} ({result_visitor})")
+                # print(f"- Time: {time} [Argentina] | {team_local} ({result_local}) Vs. {team_visitor} ({result_visitor})")
             
         games_results[league_title] = league_results
 
@@ -98,6 +95,7 @@ def lambda_handler(event, context):
     promiedos_response = promiedos()
 
     formatted_response = format_matches(promiedos_response)
+
     send_telegram_message(formatted_response)
 
     return promiedos_response
@@ -140,9 +138,9 @@ def format_matches(json_data):
                 israeli_time = match_time.astimezone(ZoneInfo('Asia/Jerusalem'))
                 formatted_time = israeli_time.strftime("%H:%M")
                 formatted_date = israeli_time.strftime("%d/%m")
-            except Exception:
-                formatted_date = "LIVE"
-                formatted_date = match["time"]
+            except ValueError:
+                formatted_date = ""
+                formatted_time = match["time"]
 
             
             # Format match details
