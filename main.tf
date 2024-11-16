@@ -3,7 +3,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 4.16"
+      version = "~> 5.76"
     }
   }
 
@@ -89,8 +89,9 @@ resource "aws_lambda_permission" "allow_eventbridge" {
 ### Pipeline
 ### Codepipeline
 resource "aws_codepipeline" "codepipeline" {
-  name     = "promiedos"
-  role_arn = aws_iam_role.codepipeline_role.arn
+  name          = "promiedos"
+  role_arn      = aws_iam_role.codepipeline_role.arn
+  pipeline_type = "V2"
 
   artifact_store {
     location = aws_s3_bucket.codepipeline_bucket.bucket
@@ -131,6 +132,20 @@ resource "aws_codepipeline" "codepipeline" {
 
       configuration = {
         ProjectName = aws_codebuild_project.build_promiedos_lambda.name
+      }
+    }
+  }
+
+  trigger {
+    provider_type = "CodeStarSourceConnection"
+    
+    git_configuration {
+      source_action_name = "Source"
+
+      push {
+        branches {
+          includes = ["main"]
+        }
       }
     }
   }
