@@ -15,15 +15,3 @@ variable "aws_account_id" {
   type        = string
   sensitive   = true
 }
-
-variable "telegram_token" {
-  description = "Telegram token"
-  type        = string
-  sensitive   = true
-}
-
-variable "telegram_chat_id" {
-  description = "Telegram chat ID"
-  type        = string
-  sensitive   = true
-}

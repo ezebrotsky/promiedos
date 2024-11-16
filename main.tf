@@ -54,6 +54,13 @@ resource "aws_lambda_function" "promiedos_lambda" {
   role          = aws_iam_role.iam_for_lambda.arn
   package_type  = "Image" 
   image_uri     = "${aws_ecr_repository.promiedos.repository_url}:latest"
+  
+  environment {
+    variables = {
+      TELEGRAM_TOKEN   = local.telegram_token
+      TELEGRAM_CHAT_ID = local.telegram_chat_id
+    } 
+  }
 }
 
 ### Trigger Lambda every 2 hours
@@ -237,7 +244,8 @@ data "aws_iam_policy_document" "codebuild_promiedos_policy_document" {
       "ecs:RunTask",
       "iam:PassRole",
       "s3:GetObject",
-      "lambda:UpdateFunctionCode"
+      "lambda:UpdateFunctionCode",
+      "secretsmanager:GetSecretValue"
     ]
 
     resources = ["*"]
@@ -273,10 +281,22 @@ resource "aws_codebuild_project" "build_promiedos_lambda" {
     buildspec = templatefile(
       "./buildspecs/promiedos_lambda.yml",
       {
-        account          = var.aws_account_id
-        telegram_token   = var.telegram_token
-        telegram_chat_id = var.telegram_chat_id
+        account = var.aws_account_id
       }
     )
   }
+}
+
+### Secrets
+resource "aws_secretsmanager_secret" "secret" {
+  name = "promiedos"
+}
+
+data "aws_secretsmanager_secret_version" "secret_version" {
+  secret_id = aws_secretsmanager_secret.secret.id
+}
+
+locals {
+  telegram_token   = jsondecode(data.aws_secretsmanager_secret_version.secret_version.secret_string).TELEGRAM_TOKEN
+  telegram_chat_id = jsondecode(data.aws_secretsmanager_secret_version.secret_version.secret_string).TELEGRAM_CHAT_ID
 }

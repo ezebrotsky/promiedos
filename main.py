@@ -1,9 +1,13 @@
 import requests
 import os
 import json
+
 from bs4 import BeautifulSoup
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def promiedos() -> dict:
     """
@@ -100,7 +104,7 @@ def lambda_handler(event, context):
 
 def send_telegram_message(message):
     try:
-        bot_request = 'https://api.telegram.org/bot' + os.environ['TELEGRAM_TOKEN'] + '/sendMessage?chat_id=' + os.environ['TELEGRAM_CHAT_ID'] + '&parse_mode=html&text=' + message
+        bot_request = 'https://api.telegram.org/bot' + os.getenv('TELEGRAM_TOKEN') + '/sendMessage?chat_id=' + os.getenv('TELEGRAM_CHAT_ID') + '&parse_mode=html&text=' + message
 
         return requests.get(bot_request) 
     except Exception as e:
@@ -160,3 +164,7 @@ def format_matches(json_data):
         formatted_output.append('%0A')
     
     return '%0A%0A'.join(formatted_output)
+
+
+if __name__ == '__main__':
+    lambda_handler({},{})
