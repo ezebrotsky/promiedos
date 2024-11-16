@@ -87,6 +87,7 @@ resource "aws_lambda_permission" "allow_eventbridge" {
 
 
 ### Pipeline
+### Codepipeline
 resource "aws_codepipeline" "codepipeline" {
   name     = "promiedos"
   role_arn = aws_iam_role.codepipeline_role.arn
@@ -111,6 +112,7 @@ resource "aws_codepipeline" "codepipeline" {
         ConnectionArn    = aws_codestarconnections_connection.personal.arn
         FullRepositoryId = "ezebrotsky/promiedos"
         BranchName       = "main"
+        DetectChanges    = true
       }
     }
   }
@@ -208,7 +210,7 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
 }
 
 
-
+### Codebuild
 data "aws_iam_policy_document" "assume_codebuild_role" {
   statement {
     effect = "Allow"
