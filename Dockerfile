@@ -1,9 +1,6 @@
 # FROM public.ecr.aws/lambda/python:3.8.2021.12.18.01-x86_64
 FROM public.ecr.aws/lambda/python:3.9
 
-# Copy .env file for local building
-COPY .env .env
-
 # Copy requirements.txt
 COPY requirements.txt ${LAMBDA_TASK_ROOT}
 
