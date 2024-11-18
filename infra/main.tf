@@ -57,8 +57,11 @@ resource "aws_lambda_function" "promiedos_lambda" {
   
   environment {
     variables = {
-      TELEGRAM_TOKEN   = local.telegram_token
-      TELEGRAM_CHAT_ID = local.telegram_chat_id
+      TELEGRAM_TOKEN    = local.telegram_token
+      TELEGRAM_CHAT_ID  = local.telegram_chat_id
+      PROMIEDOS_DB_USER = local.promiedos_db_user
+      PROMIEDOS_DB_PASS = local.promiedos_db_pass
+      PROMIEDOS_DB_HOST = local.promiedos_db_host
     } 
   }
 }
@@ -313,7 +316,25 @@ data "aws_secretsmanager_secret_version" "secret_version" {
   secret_id = aws_secretsmanager_secret.secret.id
 }
 
-locals {
-  telegram_token   = jsondecode(data.aws_secretsmanager_secret_version.secret_version.secret_string).TELEGRAM_TOKEN
-  telegram_chat_id = jsondecode(data.aws_secretsmanager_secret_version.secret_version.secret_string).TELEGRAM_CHAT_ID
+### RDS
+resource "aws_db_instance" "promiedos_db" {
+  allocated_storage           = 20
+  max_allocated_storage       = 20
+  db_name                     = "promiedos_db"
+  engine                      = "postgres"
+  engine_version              = "16.3"
+  instance_class              = "db.t4g.micro"
+  username                    = local.promiedos_db_user
+  manage_master_user_password = true
+  skip_final_snapshot         = true
+  publicly_accessible         = true
 }
+
+locals {
+  telegram_token    = jsondecode(data.aws_secretsmanager_secret_version.secret_version.secret_string).TELEGRAM_TOKEN
+  telegram_chat_id  = jsondecode(data.aws_secretsmanager_secret_version.secret_version.secret_string).TELEGRAM_CHAT_ID
+  promiedos_db_user  = jsondecode(data.aws_secretsmanager_secret_version.secret_version.secret_string).PROMIEDOS_DB_USER
+  promiedos_db_pass = aws_db_instance.promiedos_db.password
+  promiedos_db_host = aws_db_instance.promiedos_db.endpoint
+}
+
