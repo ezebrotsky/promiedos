@@ -1,6 +1,7 @@
 import requests
 import os
 import json
+import psycopg2
 
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -8,6 +9,12 @@ from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# rds settings
+host = os.getenv('PROMIEDOS_DB_HOST')
+user = os.getenv('PROMIEDOS_DB_USER')
+password = os.getenv('PROMIEDOS_DB_PASS')
+db_name = 'promiedos_db'
 
 def promiedos() -> dict:
     """
@@ -94,6 +101,17 @@ def promiedos() -> dict:
 def lambda_handler(event, context):
     promiedos_response = promiedos()
 
+    try:
+        conn = psycopg2.connect(host=host, database=db_name, user=user, password=password)
+
+        update_db(conn, promiedos_response)
+
+        conn.close()
+    except Exception as e:
+        print(f"ERROR: Unexpected error: Could not connect to the instance: {e}")
+
+
+
     formatted_response = format_matches(promiedos_response)
 
     send_telegram_message(formatted_response)
@@ -162,6 +180,36 @@ def format_matches(json_data):
         formatted_output.append('%0A')
     
     return '%0A%0A'.join(formatted_output)
+
+def update_db(conn, response):
+    print(response)
+
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+            CREATE TABLE IF NOT EXISTS live_games
+                (
+                    id bigserial NOT NULL,
+                    datetime date NOT NULL,
+                    live_time text NOT NULL,
+                    local_team text NOT NULL,
+                    local_score integer,
+                    local_goals text,
+                    visitor_team text NOT NULL,
+                    visitor_score integer,
+                    visitor_goals text,
+                    info text,
+                    created_at date NOT NULL DEFAULT now(),
+                    updated_at date NOT NULL DEFAULT now(),
+                    PRIMARY KEY (id)
+                );
+        """
+    )
+
+    cur.close()
+
+
 
 
 if __name__ == '__main__':

@@ -5,6 +5,11 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.76"
     }
+
+    postgresql = {
+      source = "cyrilgdn/postgresql"
+      version = "1.24.0"
+    }
   }
 
   required_version = ">= 1.2.0"
@@ -14,6 +19,18 @@ provider "aws" {
   region = "us-east-1"
   access_key = var.aws_access_key
   secret_key = var.aws_secret_key
+}
+
+### Resources
+resource "random_password" "promiedos_db_password" {
+  length           = 16
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
+resource "random_password" "new_promiedios_db_password" {
+  length  = 20
+  special = false
 }
 
 ### ECR
@@ -60,7 +77,7 @@ resource "aws_lambda_function" "promiedos_lambda" {
       TELEGRAM_TOKEN    = local.telegram_token
       TELEGRAM_CHAT_ID  = local.telegram_chat_id
       PROMIEDOS_DB_USER = local.promiedos_db_user
-      PROMIEDOS_DB_PASS = local.promiedos_db_pass
+      PROMIEDOS_DB_PASS = local.promiedos_db_user_pass
       PROMIEDOS_DB_HOST = local.promiedos_db_host
     } 
   }
@@ -325,16 +342,52 @@ resource "aws_db_instance" "promiedos_db" {
   engine_version              = "16.3"
   instance_class              = "db.t4g.micro"
   username                    = local.promiedos_db_user
-  manage_master_user_password = true
+  password                    = random_password.promiedos_db_password.result
+  # manage_master_user_password = false
   skip_final_snapshot         = true
   publicly_accessible         = true
 }
 
+provider "postgresql" {
+  scheme          = "awspostgres"
+  host            = aws_db_instance.promiedos_db.address
+  port            = 5432
+  database        = aws_db_instance.promiedos_db.db_name
+  username        = local.promiedos_db_user
+  password        = local.promiedos_db_pass
+  connect_timeout = 15
+  superuser       = false
+}
+
+resource "postgresql_role" "promiedos_user_role" {
+  name     = "promiedos_user"
+  login    = true
+  password = local.promiedos_db_user_pass
+}
+
+resource "postgresql_default_privileges" "promiedos_user_role_privileges" {
+  role        = postgresql_role.promiedos_user_role.name
+  database    = aws_db_instance.promiedos_db.db_name
+  schema      = "public"
+  owner       = local.promiedos_db_user
+  object_type = "table"
+  privileges  = ["SELECT", "UPDATE", "INSERT"]
+}
+
+resource "postgresql_grant" "promiedos_user_create_tables_privilege" {
+  database    = aws_db_instance.promiedos_db.db_name
+  role        = postgresql_role.promiedos_user_role.name
+  schema      = "public"
+  object_type = "schema"
+  privileges  = ["CREATE"]
+}
+
 locals {
-  telegram_token    = jsondecode(data.aws_secretsmanager_secret_version.secret_version.secret_string).TELEGRAM_TOKEN
-  telegram_chat_id  = jsondecode(data.aws_secretsmanager_secret_version.secret_version.secret_string).TELEGRAM_CHAT_ID
-  promiedos_db_user  = jsondecode(data.aws_secretsmanager_secret_version.secret_version.secret_string).PROMIEDOS_DB_USER
-  promiedos_db_pass = aws_db_instance.promiedos_db.password
-  promiedos_db_host = aws_db_instance.promiedos_db.endpoint
+  telegram_token         = jsondecode(data.aws_secretsmanager_secret_version.secret_version.secret_string).TELEGRAM_TOKEN
+  telegram_chat_id       = jsondecode(data.aws_secretsmanager_secret_version.secret_version.secret_string).TELEGRAM_CHAT_ID
+  promiedos_db_user      = jsondecode(data.aws_secretsmanager_secret_version.secret_version.secret_string).PROMIEDOS_DB_USER
+  promiedos_db_pass      = random_password.promiedos_db_password.result
+  promiedos_db_user_pass = random_password.new_promiedios_db_password.result
+  promiedos_db_host      = aws_db_instance.promiedos_db.endpoint
 }
 
