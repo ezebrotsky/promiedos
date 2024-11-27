@@ -11,10 +11,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # rds settings
-host = os.getenv('PROMIEDOS_DB_HOST')
-user = os.getenv('PROMIEDOS_DB_USER')
-password = os.getenv('PROMIEDOS_DB_PASS')
-db_name = 'promiedos_db'
+# host = os.getenv('PROMIEDOS_DB_HOST')
+# user = os.getenv('PROMIEDOS_DB_USER')
+# password = os.getenv('PROMIEDOS_DB_PASS')
+# db_name = 'promiedos_db'
 
 def promiedos() -> dict:
     """
@@ -101,14 +101,14 @@ def promiedos() -> dict:
 def lambda_handler(event, context):
     promiedos_response = promiedos()
 
-    try:
-        conn = psycopg2.connect(host=host, database=db_name, user=user, password=password)
+    # try:
+        
 
-        update_db(conn, promiedos_response)
+    #     update_db(promiedos_response)
 
-        conn.close()
-    except Exception as e:
-        print(f"ERROR: Unexpected error: Could not connect to the instance: {e}")
+        
+    # except Exception as e:
+    #     print(f"ERROR: Unexpected error: Could not connect to the instance: {e}")
 
 
 
@@ -181,33 +181,78 @@ def format_matches(json_data):
     
     return '%0A%0A'.join(formatted_output)
 
-def update_db(conn, response):
-    print(response)
+# def update_db(response):
+#     print(response)
 
-    cur = conn.cursor()
+#     try:
+#         conn = psycopg2.connect(host=host, database=db_name, user=user, password=password)
 
-    cur.execute(
-        """
-            CREATE TABLE IF NOT EXISTS live_games
-                (
-                    id bigserial NOT NULL,
-                    datetime date NOT NULL,
-                    live_time text NOT NULL,
-                    local_team text NOT NULL,
-                    local_score integer,
-                    local_goals text,
-                    visitor_team text NOT NULL,
-                    visitor_score integer,
-                    visitor_goals text,
-                    info text,
-                    created_at date NOT NULL DEFAULT now(),
-                    updated_at date NOT NULL DEFAULT now(),
-                    PRIMARY KEY (id)
-                );
-        """
-    )
+#         cur = conn.cursor()
 
-    cur.close()
+#         cur.execute(
+#             """
+#                 CREATE TABLE IF NOT EXISTS public.live_games
+#                     (
+#                         id bigserial NOT NULL,
+#                         datetime timestamp,
+#                         live_time text,
+#                         league_name text NOT NULL,
+#                         local_team text NOT NULL,
+#                         local_score integer,
+#                         local_goals text,
+#                         visitor_team text NOT NULL,
+#                         visitor_score integer,
+#                         visitor_goals text,
+#                         info text,
+#                         created_at date NOT NULL DEFAULT now(),
+#                         updated_at date NOT NULL DEFAULT now(),
+#                         PRIMARY KEY (id)
+#                     );
+#             """
+#         )
+
+#         for tournament, matches in response.items():
+#             for match in matches:
+#                 local_score = 0
+#                 visitor_score = 0
+
+#                 live_time = f"TIMESTAMP '{(match['time'])}', "
+#                 date = f"TIMESTAMP '{(match['time'])}', "
+
+#                 try:
+#                     datetime.fromisoformat(match['time'])
+#                     live_time = ''
+#                 except Exception:
+#                     live_time = match['time'].replace("'", "")
+#                     live_time = f"'{live_time}', "
+#                     date = ''
+
+
+#                 if match['local']['result'] != '':
+#                     local_score = int(match['local']['result'])
+#                 if match['visitor']['result'] != '':
+#                     visitor_score = int(match['visitor']['result'])
+
+
+#                 cur.execute(
+#                     f'''
+#                         INSERT INTO public.live_games(
+#                             {'datetime, ' if date != '' else ''} {'live_time, ' if live_time != '' else ''} league_name, local_team, local_score, local_goals, visitor_team, visitor_score, visitor_goals, info
+#                         )
+#                         VALUES ({date}{live_time}'{tournament}', '{match['local']['team']}', {local_score}, ' ', '{match['visitor']['team']}', {visitor_score}, ' ', ' ');
+#                     '''
+#                 )
+
+#         conn.commit()
+
+#         cur.close()
+#         conn.close()
+#     except Exception as e:
+#         print(e)
+#         cur.close()
+#         conn.close()
+
+
 
 
 
