@@ -1,5 +1,13 @@
 ### Main
 terraform {
+  cloud { 
+    organization = "Promiedos" 
+
+    workspaces { 
+      name = "promiedos" 
+    } 
+  }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -83,16 +91,16 @@ resource "aws_lambda_function" "promiedos_lambda" {
   }
 }
 
-### Trigger Lambda every 2 hours
-resource "aws_cloudwatch_event_rule" "every_2_hours" {
-  name        = "promiedos_lambda_every_2_hours"
-  description = "Trigger promiedos Lambda every 2 hours"
+### Trigger Lambda every 4 hours
+resource "aws_cloudwatch_event_rule" "every_4_hours" {
+  name        = "promiedos_lambda_every_4_hours"
+  description = "Trigger promiedos Lambda every 4 hours"
 
-  schedule_expression = "rate(2 hours)"
+  schedule_expression = "rate(4 hours)"
 }
 
 resource "aws_cloudwatch_event_target" "lambda_target" {
-  rule      = aws_cloudwatch_event_rule.every_2_hours.name
+  rule      = aws_cloudwatch_event_rule.every_4_hours.name
   target_id = "SendToLambda"
   arn       = aws_lambda_function.promiedos_lambda.arn
 }
@@ -102,7 +110,7 @@ resource "aws_lambda_permission" "allow_eventbridge" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.promiedos_lambda.function_name
   principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.every_2_hours.arn
+  source_arn    = aws_cloudwatch_event_rule.every_4_hours.arn
 }
 
 
